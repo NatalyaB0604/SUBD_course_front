@@ -449,6 +449,7 @@ import CourseAdvantagesService from '../services/CourseAdvantagesService';
 import AgeCategoryService from '../services/AgeCategoryService';
 import ReviewsService from '../services/ReviewsService';
 import ParentsService from '../services/ParentsService';
+import SignUpsService from '../services/SignUpsService';
 import { Container, Grid, Typography, Box, Card, CardContent, Table, TableBody, TableCell, TableHead, TableRow, TextField, Button, Rating, Dialog, DialogTitle, DialogContent, Menu, MenuItem, IconButton } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -472,6 +473,8 @@ const CourseDetails = () => {
   const { isAuthenticated, userInfo } = useAuth();
   const [parentMap, setParentMap] = useState({});
   const [showReviewInput, setShowReviewInput] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [hasConfirmedSignUp, setHasConfirmedSignUp] = useState(false);
 
   useEffect(() => {
     const fetchCourseAndAdvantages = async () => {
@@ -513,8 +516,17 @@ const CourseDetails = () => {
           };
         });
 
+        const departmentResponse = await CoursesService.getDepartmentsByCourseId(id);
+        setDepartments(departmentResponse.data);
+
         setReviews(enrichedReviews);
         setParentMap(parentMap);
+
+        if (userInfo?.data?.parentId) {
+          const signUpsResponse = await SignUpsService.getSignUpsByParentId(userInfo.data.parentId);
+          const confirmedSignUps = signUpsResponse.data.filter(signUp => signUp.courseId === id && signUp.status === 'CONFIRMED');
+          setHasConfirmedSignUp(confirmedSignUps.length > 0);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -523,17 +535,7 @@ const CourseDetails = () => {
     };
 
     fetchCourseAndAdvantages();
-  }, [id]);
-
-  const handleOpen = (review) => {
-    setSelectedReview(review);
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedReview(null);
-  };
+  }, [id, userInfo]);
 
   const handleSubmitReview = async () => {
     if (!newReviewText.trim() || rating === 0) {
@@ -654,6 +656,25 @@ const CourseDetails = () => {
       </Box>
 
       <Typography variant="h5" component="h2" gutterBottom>
+        Филиалы, предлагающие этот курс
+      </Typography>
+      {departments.length > 0 ? (
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          {departments.map(branch => (
+            <Grid item xs={12} sm={6} md={4} key={branch.departmentId}>
+              <Card sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="h6">
+                  {branch.address}
+                </Typography>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Typography>Филиалы не найдены</Typography>
+      )}
+
+      <Typography variant="h5" component="h2" gutterBottom>
         Преимущества курса
       </Typography>
       <Grid container spacing={2} sx={{ mb: 4 }}>
@@ -770,46 +791,6 @@ const CourseDetails = () => {
           <MenuItem onClick={() => handleSortOrderChange('low')}>Сначала с низкой оценкой</MenuItem>
         </Menu>
       </Box>
-
-      {isAuthenticated && userInfo?.userType === 'parent' && (
-        <Box sx={{ mb: 4 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setShowReviewInput((prev) => !prev)}
-            sx={{ mb: 2 }}
-          >
-            {showReviewInput ? 'Отмена' : 'Добавить отзыв'}
-          </Button>
-
-          {showReviewInput && (
-            <Box sx={{ mb: 4, p: 3, border: '1px solid #ddd', borderRadius: '8px', boxShadow: 2 }}>
-              <Typography variant="h6" gutterBottom>Добавить отзыв</Typography>
-              <TextField
-                fullWidth
-                label="Ваш отзыв"
-                variant="outlined"
-                value={newReviewText}
-                onChange={(e) => setNewReviewText(e.target.value)}
-                multiline
-                rows={4}
-                sx={{ mb: 2 }}
-              />
-              <Rating
-                name="rating"
-                value={rating}
-                onChange={(event, newValue) => setRating(newValue)}
-                sx={{ mb: 2 }}
-              />
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                <Button variant="contained" color="primary" onClick={handleSubmitReview}>
-                  Добавить отзыв
-                </Button>
-              </Box>
-            </Box>
-          )}
-        </Box>
-      )}
 
       <Grid container spacing={3}>
         {sortedReviews.map((review) => (

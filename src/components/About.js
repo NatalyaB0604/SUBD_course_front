@@ -1,7 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, Divider } from '@mui/material';
+import DepartmentsService from '../services/DepartmentsService';
 
 const About = () => {
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await DepartmentsService.getAllDepartments();
+        setDepartments(response.data);
+      } catch (error) {
+        console.error('Ошибка при загрузке филиалов:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  if (loading) {
+    return <Typography>Загрузка...</Typography>;
+  }
+
   return (
     <Container maxWidth="md" sx={{ py: 8 }}>
     <Typography variant="h4" component="h1" align='center' gutterBottom>
@@ -86,7 +109,7 @@ const About = () => {
           bgcolor: '#ffe0b2',
           borderRadius: 2,
           p: 4,
-          mb: 4
+          mb: 4,
         }}
       >
         <Typography variant="h5" gutterBottom align="center" fontWeight="bold">
@@ -94,9 +117,20 @@ const About = () => {
         </Typography>
         <Divider sx={{ my: 2, borderBottomWidth: 3 }} />
         <Typography variant="body1">
-          1) ул. Долгобродская, 24
-          <br />
-          2) ул. Притыцкого, 2/2
+          {departments.length > 0 ? (
+            departments.map((department, index) => (
+              <div key={department.departmentId}>
+                {index + 1}) {department.address}
+                <br />
+                <Typography variant="body2" sx={{ pl: 2 }}>
+                  Почтовый индекс: {department.postIndex}
+                </Typography>
+                <br />
+              </div>
+            ))
+          ) : (
+            <Typography variant="body2" color="error">Не удалось загрузить адреса филиалов.</Typography>
+          )}
         </Typography>
       </Box>
 

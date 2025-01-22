@@ -26,6 +26,10 @@ class SignUpsService {
     return axios.get(`${SIGNUPS_BASE_URL}/child/${childId}`);
   }
 
+  getChildrenBySignUpId(signUpId){
+    return axios.get(`${SIGNUPS_BASE_URL}/${signUpId}/children`);
+  }
+
   getSignUpsByCourseId(courseId) {
     return axios.get(`${SIGNUPS_BASE_URL}/course/${courseId}`);
   }

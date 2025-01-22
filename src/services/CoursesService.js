@@ -15,6 +15,10 @@ class CoursesService {
     return axios.get(`${COURSES_BASE_URL}/get/${id}`);
   };
 
+  getDepartmentsByCourseId(courseId) {
+    return axios.get(`${COURSES_BASE_URL}/${courseId}/departments`);
+  }
+
   updateCourses(courseId, courses) {
     return axios.put(`${COURSES_BASE_URL}/update/${courseId}`, courses);
   }

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Button, Checkbox, Modal } from '@mui/material';
 import axios from 'axios';
-import { useAuth } from '../components/AuthContext'; // Импортируйте свой контекст
+import { useAuth } from '../components/AuthContext';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
-  const { userInfo } = useAuth(); // Используйте контекст для получения userInfo
+  const { userInfo } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [selectedNotifications, setSelectedNotifications] = useState(new Set());
   const [selectedNotification, setSelectedNotification] = useState(null);

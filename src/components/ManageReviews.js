@@ -9,14 +9,20 @@ const ManageReviews = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchReviews = async () => {
+      setLoading(true);
       try {
         const reviewsResponse = await ReviewsService.getAllReviews();
         setReviews(reviewsResponse.data);
       } catch (err) {
         console.error('Ошибка при загрузке данных:', err);
+        setError('Произошла ошибка при загрузке данных.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -34,6 +40,14 @@ const ManageReviews = () => {
       alert('Произошла ошибка при удалении отзыва');
     }
   };
+
+  if (loading) {
+    return <Typography variant="h6" align="center">Загрузка данных...</Typography>;
+  }
+
+  if (error) {
+    return <Typography variant="h6" align="center" color="error">{error}</Typography>;
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

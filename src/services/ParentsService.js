@@ -24,4 +24,5 @@ class ParentsService {
   }
 }
 
-export default new ParentsService();
+const instance = new ParentsService();
+export default instance;

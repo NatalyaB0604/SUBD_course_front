@@ -2,25 +2,20 @@ import React, { useEffect, useState } from 'react';
 import ReviewsService from '../services/ReviewsService';
 import CourseService from '../services/CoursesService';
 import ParentsService from '../services/ParentsService';
-import { Container, Typography, Grid, Box, Button, Dialog, DialogTitle, DialogContent, TextField, MenuItem, Rating, Select, InputLabel, FormControl, Snackbar, IconButton, Menu } from '@mui/material';
-import { useAuth } from './AuthContext';
+import SignUpsService from '../services/SignUpsService';
+import { Container, Typography, Grid, Box, Button, Dialog, DialogTitle, DialogContent, Rating, IconButton, Menu, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 
-const ReviewsPage = ({isManagement, onDeleteReview }) => {
+const ReviewsPage = ({ isManagement, onDeleteReview }) => {
   const [reviews, setReviews] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
-  const [newReviewText, setNewReviewText] = useState('');
-  const [selectedCourseId, setSelectedCourseId] = useState('');
-  const [rating, setRating] = useState(0);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
-  const [showAddReview, setShowAddReview] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [sortOrder, setSortOrder] = useState('');
-  const { isAuthenticated, userInfo } = useAuth();
 
   useEffect(() => {
     const fetchReviewsAndCourses = async () => {
@@ -33,7 +28,6 @@ const ReviewsPage = ({isManagement, onDeleteReview }) => {
 
         const parentResponse = await ParentsService.getParents();
         const parentData = parentResponse.data;
-
         setCourses(coursesData);
 
         const parentMap = parentData.reduce((map, parent) => {
@@ -41,13 +35,19 @@ const ReviewsPage = ({isManagement, onDeleteReview }) => {
           return map;
         }, {});
 
+        const signUpsResponse = await SignUpsService.getAllSignUps(); // Fetch sign-ups for children
+        const signUpsData = signUpsResponse.data;
+
         const enrichedReviews = reviewsData.map(review => {
           const parent = parentMap[review.parentId];
           const children = parent ? parent.children : [];
 
-          const childNames = children.map(child => `${child.firstName} ${child.lastName}`);
-          const childLabel = childNames.length > 1 ? 'Ученики:' : 'Ученик:';
-          const childNameString = childNames.join(', ');
+          const enrolledChildren = children.filter(child =>
+            signUpsData.some(signUp => signUp.childId === child.childId && signUp.courseId === review.courseId)
+          );
+
+          const childLabel = enrolledChildren.length > 1 ? 'Ученики:' : 'Ученик:';
+          const childNameString = enrolledChildren.map(child => `${child.firstName} ${child.lastName}`).join(', ') || 'Не указано';
 
           const createdAt = new Date(review.createdAt).toLocaleString();
           const updatedAt = new Date(review.updatedAt).toLocaleString();
@@ -84,77 +84,6 @@ const ReviewsPage = ({isManagement, onDeleteReview }) => {
   const handleClose = () => {
     setOpen(false);
     setSelectedReview(null);
-  };
-
-  const handleSubmitReview = async () => {
-    if (!newReviewText.trim() || !selectedCourseId || rating === 0) {
-      alert('Пожалуйста, заполните все поля');
-      return;
-    }
-
-    try {
-      const parentId = userInfo?.data?.parentId;
-      const courseId = selectedCourseId;
-
-      const newReview = {
-        parentId,
-        courseId,
-        reviewText: newReviewText.trim(),
-        rating,
-      };
-
-      let updatedReviews;
-
-      if (selectedReview) {
-        await ReviewsService.updateReview(selectedReview.reviewId, newReview);
-        alert('Отзыв успешно обновлен');
-
-        updatedReviews = reviews.map(review =>
-          review.reviewId === selectedReview.reviewId ? { ...review, ...newReview } : review
-        );
-      } else {
-        const createdReview = await ReviewsService.createReview(courseId, parentId, newReview);
-        alert('Отзыв успешно добавлен');
-
-        const parentResponse = await ParentsService.getParents();
-        const parentData = parentResponse.data;
-
-        const parentMap = parentData.reduce((map, parent) => {
-          map[parent.parentId] = parent;
-          return map;
-        }, {});
-
-        const parent = parentMap[parentId];
-        const children = parent ? parent.children : [];
-        const childNames = children.map(child => `${child.firstName} ${child.lastName}`);
-        const childLabel = childNames.length > 1 ? 'Ученики:' : 'Ученик:';
-        const childNameString = childNames.join(', ');
-
-        updatedReviews = [
-          ...reviews,
-          {
-            ...newReview,
-            reviewId: createdReview.data.reviewId,
-            date: new Date().toLocaleDateString(),
-            parentName: `${parent.firstName} ${parent.lastName}`,
-            childLabel,
-            childNameString,
-            courseName: courses.find(course => course.courseId === courseId)?.courseName || 'Курс не найден',
-          },
-        ];
-      }
-
-      setReviews(updatedReviews);
-
-      setNewReviewText('');
-      setSelectedCourseId('');
-      setRating(0);
-      setSelectedReview(null);
-      setShowAddReview(false);
-    } catch (err) {
-      console.error('Ошибка при добавлении отзыва:', err);
-      alert('Произошла ошибка при добавлении отзыва');
-    }
   };
 
   const handleSortOrderChange = (order) => {
@@ -215,65 +144,6 @@ const ReviewsPage = ({isManagement, onDeleteReview }) => {
           </Select>
         </FormControl>
       </Box>
-
-      {isAuthenticated && userInfo?.userType === 'parent' && (
-        <Box sx={{ mb: 4 }}>
-          <Button variant="contained" color="primary" onClick={() => setShowAddReview(!showAddReview)}>
-            {showAddReview ? 'Отмена' : 'Добавить отзыв'}
-          </Button>
-        </Box>
-      )}
-
-      {showAddReview && (
-        <Box sx={{ mb: 4, p: 3, border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f0f8ff' }}>
-          <Typography variant="h6" gutterBottom>Добавить отзыв</Typography>
-
-          <TextField
-            fullWidth
-            select
-            label="Выберите курс"
-            value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
-            sx={{ mb: 2 }}
-          >
-            {courses.map(course => (
-              <MenuItem key={course.courseId} value={course.courseId}>
-                {course.courseName}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            fullWidth
-            label="Ваш отзыв"
-            variant="outlined"
-            value={newReviewText}
-            onChange={(e) => setNewReviewText(e.target.value)}
-            multiline
-            rows={4}
-            sx={{ mb: 2 }}
-          />
-
-          <Rating
-            name="rating"
-            value={rating}
-            onChange={(e, newValue) => setRating(newValue)}
-            sx={{ mb: 2 }}
-          />
-
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              mt: 2,
-            }}
-          >
-            <Button variant="contained" color="primary" onClick={handleSubmitReview}>
-              {selectedReview ? 'Обновить отзыв' : 'Добавить отзыв'}
-            </Button>
-          </Box>
-        </Box>
-      )}
 
       <Grid container spacing={3}>
         {filteredReviews.map((review) => (
@@ -385,7 +255,6 @@ const ReviewsPage = ({isManagement, onDeleteReview }) => {
           </DialogContent>
         </Dialog>
       )}
-
     </Container>
   );
 };

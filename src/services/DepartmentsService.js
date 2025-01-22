@@ -3,24 +3,36 @@ import axios from 'axios';
 const DEPARTMENTS_BASE_URL = "http://localhost:8080/vunder-kids/departments";
 
 class DepartmentsService {
-  getCourses() {
+  getAllDepartments() {
     return axios.get(`${DEPARTMENTS_BASE_URL}/get-all`);
   }
 
-  createCourses(courses) {
-    return axios.post(`${DEPARTMENTS_BASE_URL}/save`, courses)
+  createDepartment(department) {
+    return axios.post(`${DEPARTMENTS_BASE_URL}/save`, department);
   }
 
-  getCoursesById(id){
-    return axios.get(`${DEPARTMENTS_BASE_URL}/get/${id}`);
+  getDepartmentById(departmentId){
+    return axios.get(`${DEPARTMENTS_BASE_URL}/get/${departmentId}`);
   };
 
-  updateCourses(courseId, courses) {
-    return axios.put(`${DEPARTMENTS_BASE_URL}/update/${courseId}`, courses);
+  addCourseToDepartment(departmentId, courseId) {
+    return axios.post(`${DEPARTMENTS_BASE_URL}/${departmentId}/add-course/${courseId}`);
   }
 
-  deleteCourses(courseId) {
-    return axios.delete(`${DEPARTMENTS_BASE_URL}/delete/${courseId}`);
+  getCoursesByDepartmentId(departmentId){
+    return axios.get(`${DEPARTMENTS_BASE_URL}/${departmentId}/courses`);
+  }
+
+  updateDepartment(departmentId, department) {
+    return axios.put(`${DEPARTMENTS_BASE_URL}/update/${departmentId}`, department);
+  }
+
+  updateDepartmentsForCourse(courseId, departments) {
+    return axios.put(`${DEPARTMENTS_BASE_URL}/${courseId}/update-departments`, departments);
+  }
+
+  deleteDepartment(departmentId) {
+    return axios.delete(`${DEPARTMENTS_BASE_URL}/delete/${departmentId}`);
   }
 }
 
